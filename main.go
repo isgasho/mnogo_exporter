@@ -1,35 +1,35 @@
 package main
 
 import (
-	"log"
-	"os"
-
 	"github.com/Percona-Lab/mnogo_exporter/exporter"
-	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/alecthomas/kong"
 )
 
 // GlobalFlags has command line flags to configure the exporter
 type GlobalFlags struct {
-	DSN     string
-	Debug   bool
-	Version bool
+	//DSN     string `required:"true" help:"MongoDB connection URI" placeholder:"mongodb://user:pass@127.0.0.1:27017/admin?ssl=true"`
+	DSN     string `help:"MongoDB connection URI" placeholder:"mongodb://user:pass@127.0.0.1:27017/admin?ssl=true"`
+	Debug   bool   `short:"D" help:"Enable debug mode"`
+	Version bool   `help:"Show version and exit"`
 }
 
 func main() {
 	var opts GlobalFlags
-
-	app := kingpin.New("mnogo_exporter", "MongoDB metrics exporter")
-	app.Flag("debug", "Enable debug mode.").BoolVar(&opts.Debug)
-	app.Flag("mongodb.uri", "MongoDB connection string").StringVar(&opts.DSN)
-	app.Flag("version", "Show version and exit").BoolVar(&opts.Version)
-
-	if _, err := app.Parse(os.Args[1:]); err != nil {
-		log.Fatalf("Cannot parse command line arguments: %s", err)
-	}
+	ctx := kong.Parse(&opts,
+		kong.Name("mnogo_exporter"),
+		kong.Description("MongoDB Prometheus exporter"),
+		kong.UsageOnError(),
+		kong.ConfigureHelp(kong.HelpOptions{
+			Compact: true,
+		}),
+		kong.Vars{
+			"version": "0.0.1",
+		})
 
 	exporterOpts := &exporter.Opts{
 		DSN: opts.DSN,
 	}
+
 	e, err := exporter.New(exporterOpts)
 	if err != nil {
 		panic(err)

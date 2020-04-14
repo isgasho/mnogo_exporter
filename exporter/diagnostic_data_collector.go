@@ -43,12 +43,19 @@ func (d *diagnosticDataCollector) Collect(ch chan<- prometheus.Metric) {
 
 func (d *diagnosticDataCollector) makeMetrics(prefix string, m bson.M) []prometheus.Metric {
 	var res []prometheus.Metric
+	prefix = prometheusize(prefix)
+	if prefix != "" {
+		prefix += "."
+	}
 
 	for k, v := range m {
-		_ = k
 		switch v := v.(type) {
 		case bson.M:
-			res = append(res, d.makeMetrics(prefix+"."+k, v)...)
+			res = append(res, d.makeMetrics(prefix+k, v)...)
+		case map[string]interface{}:
+			res = append(res, d.makeMetrics(prefix+k, v)...)
+		case []interface{}:
+
 		default:
 			metric, err := makeRawMetric(prefix+"."+k, v)
 			if err != nil {
