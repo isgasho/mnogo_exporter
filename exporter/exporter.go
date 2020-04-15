@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -20,6 +21,7 @@ type Exporter struct {
 // Opts holds new exporter options
 type Opts struct {
 	DSN string
+	Log *logrus.Logger
 }
 
 // New connects to the database and returns a new Exporter instance

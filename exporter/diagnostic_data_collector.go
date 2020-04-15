@@ -21,7 +21,7 @@ func (d *diagnosticDataCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (d *diagnosticDataCollector) Collect(ch chan<- prometheus.Metric) {
-	cmd := bson.D{{"getDiagnosticData", "1"}}
+	cmd := bson.D{{Key: "getDiagnosticData", Value: "1"}}
 	res := d.client.Database("admin").RunCommand(d.ctx, cmd)
 	var m bson.M
 	if err := res.Decode(&m); err != nil {
@@ -36,7 +36,7 @@ func (d *diagnosticDataCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	for _, metric := range d.makeMetrics("dd", m) {
+	for _, metric := range d.makeMetrics("", m) {
 		ch <- metric
 	}
 }
@@ -55,6 +55,7 @@ func (d *diagnosticDataCollector) makeMetrics(prefix string, m bson.M) []prometh
 		case map[string]interface{}:
 			res = append(res, d.makeMetrics(prefix+k, v)...)
 		case []interface{}:
+			fmt.Printf("prefix: %s\n", prefix)
 
 		default:
 			metric, err := makeRawMetric(prefix+"."+k, v)

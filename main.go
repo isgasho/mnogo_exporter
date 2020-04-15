@@ -1,21 +1,29 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/Percona-Lab/mnogo_exporter/exporter"
 	"github.com/alecthomas/kong"
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	version   string
+	commit    string
+	buildDate string
 )
 
 // GlobalFlags has command line flags to configure the exporter
 type GlobalFlags struct {
-	//DSN     string `required:"true" help:"MongoDB connection URI" placeholder:"mongodb://user:pass@127.0.0.1:27017/admin?ssl=true"`
-	DSN     string `help:"MongoDB connection URI" placeholder:"mongodb://user:pass@127.0.0.1:27017/admin?ssl=true"`
-	Debug   bool   `short:"D" help:"Enable debug mode"`
-	Version bool   `help:"Show version and exit"`
+	DSN     string `name:"mongodb.dsn" help:"MongoDB connection URI" placeholder:"mongodb://user:pass@127.0.0.1:27017/admin?ssl=true"`
+	Debug   bool   `name:"debug" short:"D" help:"Enable debug mode"`
+	Version bool   `name:"version" help:"Show version and exit"`
 }
 
 func main() {
 	var opts GlobalFlags
-	ctx := kong.Parse(&opts,
+	_ = kong.Parse(&opts,
 		kong.Name("mnogo_exporter"),
 		kong.Description("MongoDB Prometheus exporter"),
 		kong.UsageOnError(),
@@ -23,11 +31,25 @@ func main() {
 			Compact: true,
 		}),
 		kong.Vars{
-			"version": "0.0.1",
+			"version": version,
 		})
+
+	if opts.Version {
+		fmt.Println("mnogo-exporter - MongoDB Prometheus exporter")
+		fmt.Printf("Version: %s\n", version)
+		fmt.Printf("Commit: %s\n", commit)
+		fmt.Printf("Build date: %s\n", buildDate)
+		return
+	}
+
+	log := logrus.New()
+	if opts.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 
 	exporterOpts := &exporter.Opts{
 		DSN: opts.DSN,
+		Log: log,
 	}
 
 	e, err := exporter.New(exporterOpts)
