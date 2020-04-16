@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/alecthomas/kong v0.2.4
+	github.com/kr/pretty v0.1.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.4.1
 	github.com/sirupsen/logrus v1.4.2

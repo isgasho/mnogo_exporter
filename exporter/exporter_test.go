@@ -20,7 +20,7 @@ func getTestClient(t *testing.T) *mongo.Client {
 	hostname := "127.0.0.1"
 	username := os.Getenv("TEST_MONGODB_ADMIN_USERNAME")
 	password := os.Getenv("TEST_MONGODB_ADMIN_PASSWORD")
-	port := os.Getenv("TEST_MONGODB_STANDALONE_PORT") // standalone instance
+	port := os.Getenv("TEST_MONGODB_S1_PRIMARY_PORT") // standalone instance
 	dsn := fmt.Sprintf("mongodb://%s:%s@%s:%s/admin", username, password, hostname, port)
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dsn))

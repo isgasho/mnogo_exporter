@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -46,7 +47,7 @@ func fqMetricName(s string) string {
 	return s
 }
 
-func makeRawMetric(name string, value interface{}) (prometheus.Metric, error) {
+func makeRawMetric(name string, value interface{}, labels map[string]string) (prometheus.Metric, error) {
 	var f float64
 	switch v := value.(type) {
 	case bool:
@@ -64,18 +65,29 @@ func makeRawMetric(name string, value interface{}) (prometheus.Metric, error) {
 		f = float64(v)
 	case primitive.Timestamp:
 		return nil, nil
-
+	case primitive.ObjectID:
+		return nil, nil
 	case string:
 		return nil, nil
 
 	default:
-		return nil, nil
-		//return nil, fmt.Errorf("makeRawMetric: unhandled type %T", v)
+		return nil, fmt.Errorf("makeRawMetric: unhandled type %T", v)
 	}
 
 	fqName := fqMetricName(name)
 	help := "TODO"
 	typ := prometheus.UntypedValue
-	d := prometheus.NewDesc(fqName, help, nil, nil)
-	return prometheus.NewConstMetric(d, typ, f)
+	if len(labels) == 0 {
+		labels = nil
+	}
+
+	ln := make([]string, 0)
+	lv := make([]string, 0)
+	for k, v := range labels {
+		ln = append(ln, k)
+		lv = append(lv, v)
+	}
+
+	d := prometheus.NewDesc(fqName, help, ln, nil)
+	return prometheus.NewConstMetric(d, typ, f, lv...)
 }
