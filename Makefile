@@ -18,7 +18,7 @@ REPO?=percona/$(NAME)
 GORELEASER_FLAGS?=
 UID?=$(shell id -u)
 
-export TEST_PSMDB_VERSION?=3.6
+export TEST_PSMDB_VERSION?=4.0
 export TEST_MONGODB_FLAVOR?=percona/percona-server-mongodb
 export TEST_MONGODB_ADMIN_USERNAME?=admin
 export TEST_MONGODB_ADMIN_PASSWORD?=admin123456

@@ -25,20 +25,17 @@ func TestDiagnosticDataCollector(t *testing.T) {
 	expected := strings.NewReader(`
 # HELP rs_members_configVersion TODO
 # TYPE rs_members_configVersion untyped
-rs_members_configVersion{instanceid="0",name="127.0.0.1:17001"} 1
-rs_members_configVersion{instanceid="1",name="127.0.0.1:17002"} 1
-rs_members_configVersion{instanceid="2",name="127.0.0.1:17003"} 1
+rs_members_configVersion{member_idx="127.0.0.1:17001"} 1
+rs_members_configVersion{member_idx="127.0.0.1:17002"} 1
+rs_members_configVersion{member_idx="127.0.0.1:17003"} 1
 # HELP rs_members_syncSourceId TODO
 # TYPE rs_members_syncSourceId untyped
-rs_members_syncSourceId{instanceid="0",name="127.0.0.1:17001"} -1
-rs_members_syncSourceId{instanceid="1",name="127.0.0.1:17002"} 0
-rs_members_syncSourceId{instanceid="2",name="127.0.0.1:17003"} 0
+rs_members_syncSourceId{member_idx="127.0.0.1:17001"} -1
+rs_members_syncSourceId{member_idx="127.0.0.1:17002"} 0
+rs_members_syncSourceId{member_idx="127.0.0.1:17003"} 0
 # HELP ss_metrics_commands_count_failed TODO
 # TYPE ss_metrics_commands_count_failed untyped
 ss_metrics_commands_count_failed 0
-# HELP ss_wt_cache_in_memory_page_passed_criteria_to_be_split TODO
-# TYPE ss_wt_cache_in_memory_page_passed_criteria_to_be_split untyped
-ss_wt_cache_in_memory_page_passed_criteria_to_be_split 53
 # HELP ss_wt_session_table_salvage_failed_calls TODO
 # TYPE ss_wt_session_table_salvage_failed_calls untyped
 ss_wt_session_table_salvage_failed_calls 0
@@ -49,7 +46,6 @@ ss_wt_session_table_salvage_failed_calls 0
 	//    or counters like the number of transactions because they won't return a known value to compare
 	filter := []string{
 		"ss_metrics_commands_count_failed",
-		"ss_wt_cache_in_memory_page_passed_criteria_to_be_split",
 		"rs_members_syncSourceId",
 		"rs_members_configVersion",
 		"ss_wt_session_table_salvage_failed_calls",

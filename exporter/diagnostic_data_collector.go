@@ -45,11 +45,8 @@ func (d *diagnosticDataCollector) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (d *diagnosticDataCollector) makeMetrics(prefix string, m bson.M, labels map[string]string) []prometheus.Metric {
-	if labels == nil {
-		labels = make(map[string]string)
-	}
 	var res []prometheus.Metric
-	prefix = prometheusize(prefix)
+	//prefix = prometheusize(prefix)
 	if prefix != "" {
 		prefix += "."
 	}
@@ -62,12 +59,13 @@ func (d *diagnosticDataCollector) makeMetrics(prefix string, m bson.M, labels ma
 			res = append(res, d.makeMetrics(prefix+k, v, labels)...)
 		case primitive.A:
 			v = []interface{}(v)
-			res = append(res, d.processSlice(prefix, k, v, labels)...)
+			res = append(res, d.processSlice(prefix, k, v)...)
 		case []interface{}:
-			res = append(res, d.processSlice(prefix, k, v, labels)...)
+			continue
+			// res = append(res, d.processSlice(prefix, k, v)...)
 
 		default:
-			metric, err := makeRawMetric(prefix+"."+k, v, labels)
+			metric, err := makeRawMetric(prefix, k, v, labels)
 			if err != nil {
 				// TODO
 				panic(err)
@@ -81,25 +79,27 @@ func (d *diagnosticDataCollector) makeMetrics(prefix string, m bson.M, labels ma
 	return res
 }
 
-func (d *diagnosticDataCollector) processSlice(prefix, k string, v []interface{}, labels map[string]string) []prometheus.Metric {
+func (d *diagnosticDataCollector) processSlice(prefix, k string, v []interface{}) []prometheus.Metric {
 	metrics := make([]prometheus.Metric, 0)
+	labels := make(map[string]string)
+
 	for _, item := range v {
 		var s map[string]interface{}
+
 		switch i := item.(type) {
 		case map[string]interface{}:
 			s = i
 		case primitive.M:
 			s = map[string]interface{}(i)
 		}
-		if id, ok := s["_id"]; ok {
-			labels["instanceid"] = fmt.Sprintf("%v", id)
+
+		if name, ok := s["name"].(string); ok {
+			labels["member_idx"] = name
 		}
-		name, ok := s["name"].(string)
-		if ok {
-			labels["name"] = name
-		}
+
 		metrics = append(metrics, d.makeMetrics(prefix+k, s, labels)...)
 	}
+
 	return metrics
 }
 
