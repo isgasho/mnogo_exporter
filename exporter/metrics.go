@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -69,10 +71,11 @@ func prometheusize(s string) string {
 		}
 	}
 
+	s = exporterPrefix + s
 	s = specialCharsRe.ReplaceAllString(s, "_")
 	s = dollarRe.ReplaceAllString(s, "")
 	s = repeatedUnderscores.ReplaceAllString(s, "_")
-	return exporterPrefix + s
+	return s
 }
 
 func makeRawMetric(prefix, name string, value interface{}, labels map[string]string) (prometheus.Metric, error) {
@@ -96,6 +99,8 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 	case primitive.ObjectID:
 		return nil, nil
 	case string:
+		return nil, nil
+	case primitive.Binary:
 		return nil, nil
 
 	default:
@@ -124,4 +129,59 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 
 	d := prometheus.NewDesc(fqName, help, ln, nil)
 	return prometheus.NewConstMetric(d, typ, f, lv...)
+}
+
+func makeMetrics(prefix string, m bson.M, labels map[string]string) []prometheus.Metric {
+	var res []prometheus.Metric
+	if prefix != "" {
+		prefix += "."
+	}
+
+	for k, val := range m {
+		switch v := val.(type) {
+		case bson.M:
+			res = append(res, makeMetrics(prefix+k, v, labels)...)
+		case map[string]interface{}:
+			res = append(res, makeMetrics(prefix+k, v, labels)...)
+		case primitive.A:
+			v = []interface{}(v)
+			res = append(res, processSlice(prefix, k, v)...)
+		case []interface{}:
+			continue
+		default:
+			metric, err := makeRawMetric(prefix, k, v, labels)
+			if err != nil {
+				logrus.Errorf("don't know how to handle %T data type: %s", val, err)
+			}
+			if metric != nil {
+				res = append(res, metric)
+			}
+		}
+	}
+
+	return res
+}
+
+func processSlice(prefix, k string, v []interface{}) []prometheus.Metric {
+	metrics := make([]prometheus.Metric, 0)
+	labels := make(map[string]string)
+
+	for _, item := range v {
+		var s map[string]interface{}
+
+		switch i := item.(type) {
+		case map[string]interface{}:
+			s = i
+		case primitive.M:
+			s = map[string]interface{}(i)
+		}
+
+		if name, ok := s["name"].(string); ok {
+			labels["member_idx"] = name
+		}
+
+		metrics = append(metrics, makeMetrics(prefix+k, s, labels)...)
+	}
+
+	return metrics
 }

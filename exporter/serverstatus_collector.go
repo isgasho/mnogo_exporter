@@ -9,17 +9,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type diagnosticDataCollector struct {
+type serverStatusCollector struct {
 	ctx    context.Context
 	client *mongo.Client
 }
 
-func (d *diagnosticDataCollector) Describe(ch chan<- *prometheus.Desc) {
+func (d *serverStatusCollector) Describe(ch chan<- *prometheus.Desc) {
 	prometheus.DescribeByCollect(d, ch)
 }
 
-func (d *diagnosticDataCollector) Collect(ch chan<- prometheus.Metric) {
-	cmd := bson.D{{Key: "getDiagnosticData", Value: "1"}}
+func (d *serverStatusCollector) Collect(ch chan<- prometheus.Metric) {
+	cmd := bson.D{{Key: "serverStatus", Value: "1"}}
 	res := d.client.Database("admin").RunCommand(d.ctx, cmd)
 	var m bson.M
 	if err := res.Decode(&m); err != nil {
@@ -38,6 +38,3 @@ func (d *diagnosticDataCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- metric
 	}
 }
-
-// check interface
-var _ prometheus.Collector = (*diagnosticDataCollector)(nil)
