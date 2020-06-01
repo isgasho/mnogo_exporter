@@ -31,6 +31,6 @@ jobs:
         fi
 
     - name: Test
-      run:
+      run: |
         make test-cluster
         make test
