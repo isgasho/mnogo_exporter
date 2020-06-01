@@ -112,6 +112,7 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 	}
 
 	fqName := prometheusize(prefix + name)
+	// if there are predefined metric name and labels for that metric, use them.
 	if label, ok := nodeToPDMetrics[prefix]; ok {
 		fqName = prometheusize(prefix)
 		labels[label] = name
