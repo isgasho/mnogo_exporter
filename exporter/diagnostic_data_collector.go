@@ -23,7 +23,6 @@ func (d *diagnosticDataCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (d *diagnosticDataCollector) Collect(ch chan<- prometheus.Metric) {
-	// cmd := bson.D{{Key: "replSetGetStatus", Value: "1"}}
 	cmd := bson.D{{Key: "getDiagnosticData", Value: "1"}}
 	res := d.client.Database("admin").RunCommand(d.ctx, cmd)
 	var m bson.M
