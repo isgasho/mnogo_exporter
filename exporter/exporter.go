@@ -3,9 +3,9 @@ package exporter
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"time"
 
+	"github.com/percona/exporter_shared"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
@@ -18,7 +18,7 @@ const (
 	connectTimeout = 10 * time.Second
 )
 
-// Exporter holds Exporter methods and attributes
+// Exporter holds Exporter methods and attributes.
 type Exporter struct {
 	client     *mongo.Client
 	collectors []prometheus.Collector
@@ -26,7 +26,7 @@ type Exporter struct {
 	port       int
 }
 
-// Opts holds new exporter options
+// Opts holds new exporter options.
 type Opts struct {
 	DSN                  string
 	Log                  *logrus.Logger
@@ -35,7 +35,7 @@ type Opts struct {
 	CollStatsCollections []string
 }
 
-// New connects to the database and returns a new Exporter instance
+// New connects to the database and returns a new Exporter instance.
 func New(opts *Opts) (*Exporter, error) {
 	if opts == nil {
 		opts = new(Opts)
@@ -79,20 +79,13 @@ func (e *Exporter) Run() {
 		ErrorLog:      log.NewErrorLogger(),
 	})
 
-	// This is not using the shared prometheus server becauase we might want to use
-	// different routes for different exporters and the shared server cannot do that
-	mux := http.NewServeMux()
-	mux.Handle(e.path, handler)
+	addr := fmt.Sprintf(":%d", e.port)
+	log.Infof("Starting HTTP server for http://%s%s ...", addr, e.path)
 
-	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", e.port),
-		Handler: mux,
-	}
-	log.Infof("Starting HTTP server for http://%s%s ...", srv.Addr, e.path)
-	log.Fatal(srv.ListenAndServe())
+	exporter_shared.RunServer("MongoDB", addr, e.path, handler)
 }
 
-// Disconnect from the DB
+// Disconnect from the DB.
 func (e *Exporter) Disconnect(ctx context.Context) error {
 	return e.client.Disconnect(ctx)
 }
