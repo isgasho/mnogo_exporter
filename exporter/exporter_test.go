@@ -3,6 +3,7 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -13,20 +14,24 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func getTestClient(t *testing.T) *mongo.Client {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
+func getTestClient(ctx context.Context, t *testing.T) *mongo.Client {
 	hostname := "127.0.0.1"
-	username := os.Getenv("TEST_MONGODB_ADMIN_USERNAME")
-	password := os.Getenv("TEST_MONGODB_ADMIN_PASSWORD")
 	port := os.Getenv("TEST_MONGODB_S1_PRIMARY_PORT") // standalone instance
-	dsn := fmt.Sprintf("mongodb://%s:%s@%s:%s/admin", username, password, hostname, port)
+	direct := true
+	to := time.Second
+	co := &options.ClientOptions{
+		ConnectTimeout: &to,
+		Hosts:          []string{net.JoinHostPort(hostname, port)},
+		Direct:         &direct,
+	}
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dsn))
+	client, err := mongo.Connect(ctx, co)
 	require.NoError(t, err)
 
-	t.Cleanup(func() { client.Disconnect(ctx) }) //nolint:errcheck
+	t.Cleanup(func() {
+		err := client.Disconnect(ctx)
+		assert.NoError(t, err)
+	})
 
 	err = client.Ping(ctx, nil)
 	require.NoError(t, err)
@@ -35,12 +40,8 @@ func getTestClient(t *testing.T) *mongo.Client {
 }
 
 func TestConnect(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
-	defer cancel()
-
 	hostname := "127.0.0.1"
-	username := os.Getenv("TEST_MONGODB_ADMIN_USERNAME")
-	password := os.Getenv("TEST_MONGODB_ADMIN_PASSWORD")
+	ctx := context.Background()
 
 	ports := map[string]string{
 		"standalone":          os.Getenv("TEST_MONGODB_STANDALONE_PORT"),
@@ -56,18 +57,7 @@ func TestConnect(t *testing.T) {
 
 	t.Run("Connect without SSL", func(t *testing.T) {
 		for name, port := range ports {
-			dsn := fmt.Sprintf("mongodb://%s:%s@%s:%s/admin", username, password, hostname, port)
-			client, err := connect(ctx, dsn)
-			assert.NoError(t, err, name)
-			err = client.Disconnect(ctx)
-			assert.NoError(t, err, name)
-		}
-	})
-
-	t.Run("Connect with SSL", func(t *testing.T) {
-		sslOpts := "ssl=true&tlsInsecure=true&tlsCertificateKeyFile=../docker/test/ssl/client.pem"
-		for name, port := range ports {
-			dsn := fmt.Sprintf("mongodb://%s:%s@%s:%s/admin?%s", username, password, hostname, port, sslOpts)
+			dsn := fmt.Sprintf("mongodb://%s:%s/admin", hostname, port)
 			client, err := connect(ctx, dsn)
 			assert.NoError(t, err, name)
 			err = client.Disconnect(ctx)

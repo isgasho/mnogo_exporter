@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -15,8 +14,50 @@ const (
 	exporterPrefix = "mongodb_"
 )
 
+//nolint:gochecknoglobals
 var (
 	// Rules to shrink metric names
+	// Please do not change the definitions order: rules are sorted by precedence.
+	prefixes = [][]string{
+		{"serverStatus.wiredTiger.transaction", "ss_wt_txn"},
+		{"serverStatus.wiredTiger", "ss_wt"},
+		{"serverStatus", "ss"},
+		{"replSetGetStatus", "rs"},
+		{"systemMetrics", "sys"},
+		{"local.oplog.rs.stats.wiredTiger", "oplog_stats_wt"},
+		{"local.oplog.rs.stats", "oplog_stats"},
+		{"collstats_storage.wiredTiger", "collstats_storage_wt"},
+		{"collstats_storage.indexDetails", "collstats_storage_idx"},
+		{"collStats.storageStats", "collstats_storage"},
+		{"collStats.latencyStats", "collstats_latency"},
+	}
+
+	// This map is used to add labels to some specific metrics.
+	// For example, the fields under the serverStatus.opcounters. structure have this
+	// signature:
+	//
+	//    "opcounters": primitive.M{
+	//        "insert":  int32(4),
+	//        "query":   int32(2118),
+	//        "update":  int32(14),
+	//        "delete":  int32(22),
+	//        "getmore": int32(9141),
+	//        "command": int32(67923),
+	//    },
+	//
+	// Applying the renaming rules, serverStatus will become ss but instead of having metrics
+	// with the form ss.opcounters.<operation> where operation is each one of the fields inside
+	// the structure (insert, query, update, etc), those keys will become labels for the same
+	// metric name. The label name is defined as the value for each metric name in the map and
+	// the value the label will have is the field name in the structure. Example.
+	//
+	//   mongodb_ss_opcounters{legacy_op_type="insert"} 4
+	//   mongodb_ss_opcounters{legacy_op_type="query"} 2118
+	//   mongodb_ss_opcounters{legacy_op_type="update"} 14
+	//   mongodb_ss_opcounters{legacy_op_type="delete"} 22
+	//   mongodb_ss_opcounters{legacy_op_type="getmore"} 9141
+	//   mongodb_ss_opcounters{legacy_op_type="command"} 67923
+	//
 	nodeToPDMetrics = map[string]string{
 		"collStats.storageStats.indexDetails.":            "index_name",
 		"globalLock.activeQueue.":                         "count_type",
@@ -35,35 +76,19 @@ var (
 		"serverStatus.wiredTiger.concurrentTransactions.": "txn_rw_type",
 		"serverStatus.wiredTiger.perf.":                   "perf_bucket",
 		"systemMetrics.disks.":                            "device_name",
-		/*Following needs to be tested once reportOpWriteConcernCountersInServerStatus*/
-		/*  parameter is set*/
-		/*"serverStatus.opWriteConcernCounters.":  "cmd_type",*/
-		/*"globalLock.locks.<LOCK_TYPE>.acquireCount.":      "lock_mode",*/
-		/*"globalLock.locks.<LOCK_TYPE>.acquireWaitCount.":  "lock_mode",*/
-		/*"globalLock.locks.<LOCK_TYPE>.deadlockCount.":     "lock_mode",*/
-		/*"globalLock.locks.<LOCK_TYPE>.timeAcquiringMicros.":  "lock_mode",*/
 	}
 
 	// Regular expressions used to make the metric name Prometheus-compatible
-	specialCharsRe      = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
-	repeatedUnderscores = regexp.MustCompile(`__+`)
-	dollarRe            = regexp.MustCompile(`\_$`)
+	// This variables are global to compile the regexps only once.
+	specialCharsRe        = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+	repeatedUnderscoresRe = regexp.MustCompile(`__+`)
+	dollarRe              = regexp.MustCompile(`\_$`)
 )
 
+// prometheusize renames metrics by replacing some prefixes with shorter names
+// replace special chars to follow Prometheus metric naming rules and adds the
+// exporter name prefix.
 func prometheusize(s string) string {
-	prefixes := [][]string{
-		{"serverStatus.wiredTiger.transaction", "ss_wt_txn"},
-		{"serverStatus.wiredTiger", "ss_wt"},
-		{"serverStatus", "ss"},
-		{"replSetGetStatus", "rs"},
-		{"systemMetrics", "sys"},
-		{"local.oplog.rs.stats.wiredTiger", "oplog_stats_wt"},
-		{"local.oplog.rs.stats", "oplog_stats"},
-		{"collstats_storage.wiredTiger", "collstats_storage_wt"},
-		{"collstats_storage.indexDetails", "collstats_storage_idx"},
-		{"collStats.storageStats", "collstats_storage"},
-		{"collStats.latencyStats", "collstats_latency"},
-	}
 	for _, pair := range prefixes {
 		if strings.HasPrefix(s, pair[0]+".") {
 			s = pair[1] + strings.TrimPrefix(s, pair[0])
@@ -71,15 +96,28 @@ func prometheusize(s string) string {
 		}
 	}
 
-	s = exporterPrefix + s
 	s = specialCharsRe.ReplaceAllString(s, "_")
 	s = dollarRe.ReplaceAllString(s, "")
-	s = repeatedUnderscores.ReplaceAllString(s, "_")
-	return s
+	s = repeatedUnderscoresRe.ReplaceAllString(s, "_")
+
+	return exporterPrefix + s
 }
 
+// nameAndLabel checks if there are predefined metric name and label for that metric or
+// the standard metrics name should be used in place.
+func nameAndLabel(prefix, name string) (string, string) {
+	if label, ok := nodeToPDMetrics[prefix]; ok {
+		return prometheusize(prefix), label
+	}
+
+	return prometheusize(prefix + name), ""
+}
+
+// makeRawMetric creates a Prometheus metric based on the parameters we collected by
+// traversing the MongoDB structures returned by the collector functions.
 func makeRawMetric(prefix, name string, value interface{}, labels map[string]string) (prometheus.Metric, error) {
 	var f float64
+
 	switch v := value.(type) {
 	case bool:
 		if v {
@@ -89,47 +127,54 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 		f = float64(v)
 	case int64:
 		f = float64(v)
+	case float32:
+		f = float64(v)
 	case float64:
 		f = v
-
 	case primitive.DateTime:
 		f = float64(v)
-	case primitive.Timestamp:
+	case primitive.A, primitive.ObjectID, primitive.Timestamp, string:
 		return nil, nil
-	case primitive.ObjectID:
-		return nil, nil
-	case string:
-		return nil, nil
-	case primitive.Binary:
-		return nil, nil
-
 	default:
 		return nil, fmt.Errorf("makeRawMetric: unhandled type %T", v)
 	}
 
 	if labels == nil {
-		labels = make(map[string]string)
+		labels = map[string]string{}
 	}
 
-	fqName := prometheusize(prefix + name)
-	// if there are predefined metric name and labels for that metric, use them.
-	if label, ok := nodeToPDMetrics[prefix]; ok {
-		fqName = prometheusize(prefix)
+	help := metricHelp(prefix)
+	typ := prometheus.UntypedValue
+
+	fqName, label := nameAndLabel(prefix, name)
+	if label != "" {
 		labels[label] = name
 	}
 
-	help := "TODO"
-	typ := prometheus.UntypedValue
+	ln := make([]string, 0, len(labels))
+	lv := make([]string, 0, len(labels))
 
-	ln := make([]string, 0)
-	lv := make([]string, 0)
 	for k, v := range labels {
 		ln = append(ln, k)
 		lv = append(lv, v)
 	}
 
 	d := prometheus.NewDesc(fqName, help, ln, nil)
-	return prometheus.NewConstMetric(d, typ, f, lv...)
+
+	m, err := prometheus.NewConstMetric(d, typ, f, lv...)
+
+	return m, err
+}
+
+// metricHelp builds the metric help.
+// It is a very very very simple function, but the idea is if the future we want
+// to improve the help somehow, there is only one place to change it for the real
+// functions and for all the tests.
+// Use only prefix because 2 metrics cannot have same name but different help. For metrics
+// where we labelize some keys, if we put the real metric name here it will be rejected
+// by prometheus
+func metricHelp(prefix string) string {
+	return prefix
 }
 
 func makeMetrics(prefix string, m bson.M, labels map[string]string) []prometheus.Metric {
@@ -152,8 +197,10 @@ func makeMetrics(prefix string, m bson.M, labels map[string]string) []prometheus
 		default:
 			metric, err := makeRawMetric(prefix, k, v, labels)
 			if err != nil {
-				logrus.Errorf("don't know how to handle %T data type: %s", val, err)
+				// TODO
+				panic(err)
 			}
+
 			if metric != nil {
 				res = append(res, metric)
 			}
