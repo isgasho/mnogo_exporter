@@ -1,10 +1,10 @@
 package exporter
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -136,7 +136,7 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 	case primitive.A, primitive.ObjectID, primitive.Timestamp, primitive.Binary, string:
 		return nil, nil
 	default:
-		return nil, fmt.Errorf("makeRawMetric: unhandled type %T", v)
+		return nil, errors.Wrapf(errCannotHandleType, "%T", v)
 	}
 
 	if labels == nil {
@@ -170,18 +170,27 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 // It is a very very very simple function, but the idea is if the future we want
 // to improve the help somehow, there is only one place to change it for the real
 // functions and for all the tests.
-// Use only prefix because 2 metrics cannot have same name but different help. For metrics
-// where we labelize some keys, if we put the real metric name here it will be rejected
-// by prometheus. For first level metrics, there is no prefix so we should use the metric name
+// Use only prefix or name but not both because 2 metrics cannot have same name but different help.
+// For metrics where we labelize some keys, if we put the real metric name here it will be rejected
+// by prometheus. For first level metrics, there is no prefix so we should use the metric name or
+// the help would be empty.
 func metricHelp(prefix, name string) string {
 	if prefix != "" {
 		return prefix
 	}
+
 	return name
+}
+
+// buildMetrics is a wrapper around makeMetrics, because makeMetrics is recursive and requires a prefix
+// and a map of labels. From the collectors we call buildMetrics which has a simpler signature.
+func buildMetrics(m bson.M) []prometheus.Metric {
+	return makeMetrics("", m, nil)
 }
 
 func makeMetrics(prefix string, m bson.M, labels map[string]string) []prometheus.Metric {
 	var res []prometheus.Metric
+
 	if prefix != "" {
 		prefix += "."
 	}
@@ -200,10 +209,11 @@ func makeMetrics(prefix string, m bson.M, labels map[string]string) []prometheus
 		default:
 			metric, err := makeRawMetric(prefix, k, v, labels)
 			if err != nil {
-				// TODO
-				panic(err)
+				metric = prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
 			}
 
+			// makeRawMetric returns a nil metric for some data types like strings
+			// because we cannot extract data from all types
 			if metric != nil {
 				res = append(res, metric)
 			}
@@ -213,6 +223,8 @@ func makeMetrics(prefix string, m bson.M, labels map[string]string) []prometheus
 	return res
 }
 
+// Extract maps from arrays. Only some structures like replicasets have arrays of members
+// and each member is represented by a map[string]interface{}.
 func processSlice(prefix, k string, v []interface{}) []prometheus.Metric {
 	metrics := make([]prometheus.Metric, 0)
 	labels := make(map[string]string)
@@ -225,8 +237,11 @@ func processSlice(prefix, k string, v []interface{}) []prometheus.Metric {
 			s = i
 		case primitive.M:
 			s = map[string]interface{}(i)
+		default:
+			continue
 		}
 
+		// use the replicaset or server name as a label
 		if name, ok := s["name"].(string); ok {
 			labels["member_idx"] = name
 		}

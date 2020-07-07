@@ -34,7 +34,7 @@ func (d *collstatsCollector) Collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 
-		for _, metric := range makeMetrics("", m, nil) {
+		for _, metric := range buildMetrics(m) {
 			ch <- metric
 		}
 	}

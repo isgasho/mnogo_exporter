@@ -33,7 +33,7 @@ func (d *replSetGetStatusCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	for _, metric := range makeMetrics("", m, nil) {
+	for _, metric := range buildMetrics(m) {
 		ch <- metric
 	}
 }

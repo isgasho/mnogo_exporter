@@ -30,6 +30,10 @@ type Opts struct {
 	Port                 int
 }
 
+var (
+	errCannotHandleType = fmt.Errorf("don't know how to handle data type")
+)
+
 // New connects to the database and returns a new Exporter instance.
 func New(opts *Opts) (*Exporter, error) {
 	if opts == nil {
