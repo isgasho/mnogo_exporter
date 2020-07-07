@@ -28,6 +28,7 @@ func (d *collstatsCollector) Collect(ch chan<- prometheus.Metric) {
 
 		cmd := bson.D{{Key: "collStats", Value: parts[1]}}
 		res := d.client.Database(parts[0]).RunCommand(d.ctx, cmd)
+
 		var m bson.M
 		if err := res.Decode(&m); err != nil {
 			ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)

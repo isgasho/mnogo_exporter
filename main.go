@@ -10,13 +10,14 @@ import (
 	"github.com/Percona-Lab/mnogo_exporter/exporter"
 )
 
+//nolint:gochecknoglobals
 var (
 	version   string
 	commit    string
 	buildDate string
 )
 
-// GlobalFlags has command line flags to configure the exporter
+// GlobalFlags has command line flags to configure the exporter.
 type GlobalFlags struct {
 	CollStatsCollections string `name:"mongodb.collstats-colls" help:"List of comma separared databases.collections to get stats"`
 	DSN                  string `name:"mongodb.dsn" help:"MongoDB connection URI" placeholder:"mongodb://user:pass@127.0.0.1:27017/admin?ssl=true"`
@@ -44,10 +45,12 @@ func main() {
 		fmt.Printf("Version: %s\n", version)
 		fmt.Printf("Commit: %s\n", commit)
 		fmt.Printf("Build date: %s\n", buildDate)
+
 		return
 	}
 
 	log := logrus.New()
+
 	if opts.Debug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}

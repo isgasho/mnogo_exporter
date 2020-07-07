@@ -54,6 +54,10 @@ func New(opts *Opts) (*Exporter, error) {
 
 	ctx := context.Background()
 
+	if len(opts.CollStatsCollections) > 0 {
+		exp.collectors = append(exp.collectors, &collstatsCollector{ctx: ctx, client: client, collections: opts.CollStatsCollections})
+	}
+
 	exp.collectors = append(exp.collectors, &diagnosticDataCollector{ctx: ctx, client: client})
 	exp.collectors = append(exp.collectors, &replSetGetStatusCollector{ctx: ctx, client: client})
 
