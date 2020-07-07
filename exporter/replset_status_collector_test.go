@@ -14,7 +14,7 @@ func TestReplsetStatusCollector(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	client := getTestClient(t)
+	client := getTestClient(ctx, t)
 
 	c := &replSetGetStatusCollector{
 		ctx:    ctx,
@@ -23,30 +23,27 @@ func TestReplsetStatusCollector(t *testing.T) {
 
 	// The last \n at the end of this string is important
 	expected := strings.NewReader(`
-# HELP mongodb_configServerState_opTime_t TODO
-# TYPE mongodb_configServerState_opTime_t untyped
-mongodb_configServerState_opTime_t 1
-# HELP mongodb_electionCandidateMetrics_electionTerm TODO
-# TYPE mongodb_electionCandidateMetrics_electionTerm untyped
-mongodb_electionCandidateMetrics_electionTerm 1
-# HELP mongodb_electionCandidateMetrics_numCatchUpOps TODO
-# TYPE mongodb_electionCandidateMetrics_numCatchUpOps untyped
-mongodb_electionCandidateMetrics_numCatchUpOps 0
-# HELP mongodb_members_id TODO
-# TYPE mongodb_members_id untyped
-mongodb_members_id{member_idx="127.0.0.1:17001"} 0
-mongodb_members_id{member_idx="127.0.0.1:17002"} 1
-mongodb_members_id{member_idx="127.0.0.1:17003"} 2
-`)
+                # HELP mongodb_myState myState
+                # TYPE mongodb_myState untyped
+                mongodb_myState 1
+                # HELP mongodb_ok ok
+                # TYPE mongodb_ok untyped
+                mongodb_ok 1
+                # HELP mongodb_optimes_appliedOpTime_t optimes.appliedOpTime.
+                # TYPE mongodb_optimes_appliedOpTime_t untyped
+                mongodb_optimes_appliedOpTime_t 1
+                # HELP mongodb_optimes_durableOpTime_t optimes.durableOpTime.
+                # TYPE mongodb_optimes_durableOpTime_t untyped
+                mongodb_optimes_durableOpTime_t 1` + "\n")
 	// Filter metrics for 2 reasons:
 	// 1. The result is huge
 	// 2. We need to check against know values. Don't use metrics that return counters like uptime
 	//    or counters like the number of transactions because they won't return a known value to compare
 	filter := []string{
-		"mongodb_configServerState_opTime_t",
-		"mongodb_electionCandidateMetrics_electionTerm",
-		"mongodb_electionCandidateMetrics_numCatchUpOps",
-		"mongodb_members_id",
+		"mongodb_myState",
+		"mongodb_ok",
+		"mongodb_optimes_appliedOpTime_t",
+		"mongodb_optimes_durableOpTime_t",
 	}
 	err := testutil.CollectAndCompare(c, expected, filter...)
 	assert.NoError(t, err)

@@ -23,11 +23,11 @@ type Exporter struct {
 
 // Opts holds new exporter options.
 type Opts struct {
+	CollStatsCollections []string
 	DSN                  string
 	Log                  *logrus.Logger
 	Path                 string
 	Port                 int
-	CollStatsCollections []string
 }
 
 // New connects to the database and returns a new Exporter instance.
@@ -48,12 +48,10 @@ func New(opts *Opts) (*Exporter, error) {
 		port:       opts.Port,
 	}
 
+	ctx := context.Background()
+
 	exp.collectors = append(exp.collectors, &diagnosticDataCollector{ctx: ctx, client: client})
 	exp.collectors = append(exp.collectors, &replSetGetStatusCollector{ctx: ctx, client: client})
-	if len(opts.CollStatsCollections) > 0 {
-		exp.collectors = append(exp.collectors, &collstatsCollector{ctx: ctx, client: client, collections: opts.CollStatsCollections})
-		log:        opts.Log,
-	}
 
 	return exp, nil
 }

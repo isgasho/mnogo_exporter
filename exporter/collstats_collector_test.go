@@ -15,7 +15,7 @@ func TestCollStatsCollector(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	client := getTestClient(t)
+	client := getTestClient(ctx, t)
 
 	database := client.Database("testdb")
 	database.Drop(ctx) //nolint
@@ -31,16 +31,16 @@ func TestCollStatsCollector(t *testing.T) {
 
 	// The last \n at the end of this string is important
 	expected := strings.NewReader(`
-# HELP mongodb_count TODO
+# HELP mongodb_count count
 # TYPE mongodb_count untyped
 mongodb_count 1
-# HELP mongodb_indexDetails_id_LSM_bloom_filter_hits TODO
+# HELP mongodb_indexDetails_id_LSM_bloom_filter_hits indexDetails._id_.LSM.
 # TYPE mongodb_indexDetails_id_LSM_bloom_filter_hits untyped
 mongodb_indexDetails_id_LSM_bloom_filter_hits 0
-# HELP mongodb_indexDetails_id_btree_overflow_pages TODO
+# HELP mongodb_indexDetails_id_btree_overflow_pages indexDetails._id_.btree.
 # TYPE mongodb_indexDetails_id_btree_overflow_pages untyped
-mongodb_indexDetails_id_btree_overflow_pages 0
-`)
+mongodb_indexDetails_id_btree_overflow_pages 0` + "\n")
+
 	// Filter metrics for 2 reasons:
 	// 1. The result is huge
 	// 2. We need to check against know values. Don't use metrics that return counters like uptime

@@ -14,7 +14,7 @@ func TestServerStatusDataCollector(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	client := getTestClient(t)
+	client := getTestClient(ctx, t)
 
 	c := &diagnosticDataCollector{
 		ctx:    ctx,
@@ -23,16 +23,16 @@ func TestServerStatusDataCollector(t *testing.T) {
 
 	// The last \n at the end of this string is important
 	expected := strings.NewReader(`
-# HELP mongodb_oplog_stats_capped TODO
+# HELP mongodb_oplog_stats_capped local.oplog.rs.stats.
 # TYPE mongodb_oplog_stats_capped untyped
 mongodb_oplog_stats_capped 1
-# HELP mongodb_oplog_stats_nindexes TODO
+# HELP mongodb_oplog_stats_nindexes local.oplog.rs.stats.
 # TYPE mongodb_oplog_stats_nindexes untyped
 mongodb_oplog_stats_nindexes 0
-# HELP mongodb_oplog_stats_wt_cache_overflow_pages_read_into_cache TODO
+# HELP mongodb_oplog_stats_wt_cache_overflow_pages_read_into_cache local.oplog.rs.stats.wiredTiger.cache.
 # TYPE mongodb_oplog_stats_wt_cache_overflow_pages_read_into_cache untyped
 mongodb_oplog_stats_wt_cache_overflow_pages_read_into_cache 0
-# HELP mongodb_oplog_stats_wt_cursor_remove_calls TODO
+# HELP mongodb_oplog_stats_wt_cursor_remove_calls local.oplog.rs.stats.wiredTiger.cursor.
 # TYPE mongodb_oplog_stats_wt_cursor_remove_calls untyped
 mongodb_oplog_stats_wt_cursor_remove_calls 0
 `)

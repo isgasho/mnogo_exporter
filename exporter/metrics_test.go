@@ -137,7 +137,7 @@ func TestMakeRawMetric(t *testing.T) {
 	lv := make([]string, 0)
 
 	fqName := prometheusize(prefix + name)
-	help := metricHelp(prefix)
+	help := metricHelp(prefix, name)
 	typ := prometheus.UntypedValue
 	d := prometheus.NewDesc(fqName, help, ln, nil)
 

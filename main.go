@@ -8,8 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/Percona-Lab/mnogo_exporter/exporter"
-	"github.com/alecthomas/kong"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -55,9 +53,9 @@ func main() {
 	}
 
 	exporterOpts := &exporter.Opts{
+		CollStatsCollections: strings.Split(opts.CollStatsCollections, ","),
 		DSN:                  opts.DSN,
 		Log:                  log,
-		CollStatsCollections: strings.Split(opts.CollStatsCollections, ","),
 		Path:                 opts.ExposePath,
 		Port:                 opts.ExposePort,
 	}

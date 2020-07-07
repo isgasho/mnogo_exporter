@@ -187,4 +187,3 @@ services:
         ports:
             - "${TEST_MONGODB_STANDALONE_PORT}:27017"
         command: mongod --replSet rs1 --shardsvr --port 27017  --oplogSize 16 --noprealloc --smallfiles
->>>>>>> master

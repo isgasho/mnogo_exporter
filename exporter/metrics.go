@@ -133,7 +133,7 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 		f = v
 	case primitive.DateTime:
 		f = float64(v)
-	case primitive.A, primitive.ObjectID, primitive.Timestamp, string:
+	case primitive.A, primitive.ObjectID, primitive.Timestamp, primitive.Binary, string:
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("makeRawMetric: unhandled type %T", v)
@@ -143,7 +143,7 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 		labels = map[string]string{}
 	}
 
-	help := metricHelp(prefix)
+	help := metricHelp(prefix, name)
 	typ := prometheus.UntypedValue
 
 	fqName, label := nameAndLabel(prefix, name)
@@ -172,9 +172,12 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 // functions and for all the tests.
 // Use only prefix because 2 metrics cannot have same name but different help. For metrics
 // where we labelize some keys, if we put the real metric name here it will be rejected
-// by prometheus
-func metricHelp(prefix string) string {
-	return prefix
+// by prometheus. For first level metrics, there is no prefix so we should use the metric name
+func metricHelp(prefix, name string) string {
+	if prefix != "" {
+		return prefix
+	}
+	return name
 }
 
 func makeMetrics(prefix string, m bson.M, labels map[string]string) []prometheus.Metric {

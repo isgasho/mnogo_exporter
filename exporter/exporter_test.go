@@ -14,9 +14,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+func getEnvDefault(key, defaultValue string) string {
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return defaultValue
+}
+
 func getTestClient(ctx context.Context, t *testing.T) *mongo.Client {
 	hostname := "127.0.0.1"
-	port := os.Getenv("TEST_MONGODB_S1_PRIMARY_PORT") // standalone instance
+	port := getEnvDefault("TEST_MONGODB_S1_PRIMARY_PORT", "17001") // standalone instance
 	direct := true
 	to := time.Second
 	co := &options.ClientOptions{
@@ -44,15 +51,15 @@ func TestConnect(t *testing.T) {
 	ctx := context.Background()
 
 	ports := map[string]string{
-		"standalone":          os.Getenv("TEST_MONGODB_STANDALONE_PORT"),
-		"shard-1 primary":     os.Getenv("TEST_MONGODB_S1_PRIMARY_PORT"),
-		"shard-1 secondary-1": os.Getenv("TEST_MONGODB_S1_SECONDARY1_PORT"),
-		"shard-1 secondary-2": os.Getenv("TEST_MONGODB_S1_SECONDARY2_PORT"),
-		"shard-2 primary":     os.Getenv("TEST_MONGODB_S2_PRIMARY_PORT"),
-		"shard-2 secondary-1": os.Getenv("TEST_MONGODB_S2_SECONDARY1_PORT"),
-		"shard-2 secondary-2": os.Getenv("TEST_MONGODB_S2_SECONDARY2_PORT"),
-		"config server 1":     os.Getenv("TEST_MONGODB_CONFIGSVR1_PORT"),
-		"mongos":              os.Getenv("TEST_MONGODB_MONGOS_PORT"),
+		"standalone":          getEnvDefault("TEST_MONGODB_STANDALONE_PORT", "27017"),
+		"shard-1 primary":     getEnvDefault("TEST_MONGODB_S1_PRIMARY_PORT", "17001"),
+		"shard-1 secondary-1": getEnvDefault("TEST_MONGODB_S1_SECONDARY1_PORT", "17002"),
+		"shard-1 secondary-2": getEnvDefault("TEST_MONGODB_S1_SECONDARY2_PORT", "17003"),
+		"shard-2 primary":     getEnvDefault("TEST_MONGODB_S2_PRIMARY_PORT", "17004"),
+		"shard-2 secondary-1": getEnvDefault("TEST_MONGODB_S2_SECONDARY1_PORT", "17005"),
+		"shard-2 secondary-2": getEnvDefault("TEST_MONGODB_S2_SECONDARY2_PORT", "17006"),
+		"config server 1":     getEnvDefault("TEST_MONGODB_CONFIGSVR1_PORT", "17007"),
+		"mongos":              getEnvDefault("TEST_MONGODB_MONGOS_PORT", "17000"),
 	}
 
 	t.Run("Connect without SSL", func(t *testing.T) {
