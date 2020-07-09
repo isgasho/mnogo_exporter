@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -20,23 +21,36 @@ func (d *collstatsCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (d *collstatsCollector) Collect(ch chan<- prometheus.Metric) {
+	ctx := context.Background()
+
 	for _, dbCollection := range d.collections {
 		parts := strings.Split(dbCollection, ".")
 		if len(parts) != 2 {
 			continue
 		}
 
-		cmd := bson.D{{Key: "collStats", Value: parts[1]}}
-		res := d.client.Database(parts[0]).RunCommand(d.ctx, cmd)
+		database := parts[0]
+		collection := parts[1]
 
-		var m bson.M
-		if err := res.Decode(&m); err != nil {
-			ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
+		aggregation := bson.D{
+			{"$collStats", bson.M{"latencyStats": bson.E{"histograms", true}}}, //nolint
+		}
+
+		cursor, err := d.client.Database(database).Collection(collection).Aggregate(ctx, mongo.Pipeline{aggregation})
+		if err != nil {
+			logrus.Errorf("cannot get $collstats for collection %s.%s: %s", database, collection, err)
 			continue
 		}
 
-		for _, metric := range buildMetrics(m) {
-			ch <- metric
+		var stats []bson.M
+		if err = cursor.All(ctx, &stats); err != nil {
+			panic(err)
+		}
+
+		for _, m := range stats {
+			for _, metric := range buildMetrics(m) {
+				ch <- metric
+			}
 		}
 	}
 }
