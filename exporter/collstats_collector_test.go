@@ -31,24 +31,24 @@ func TestCollStatsCollector(t *testing.T) {
 
 	// The last \n at the end of this string is important
 	expected := strings.NewReader(`
-# HELP mongodb_latencyStats_commands_latency latencyStats.commands.
-# TYPE mongodb_latencyStats_commands_latency untyped
-mongodb_latencyStats_commands_latency 0
-# HELP mongodb_latencyStats_commands_ops latencyStats.commands.
-# TYPE mongodb_latencyStats_commands_ops untyped
-mongodb_latencyStats_commands_ops 0
-# HELP mongodb_latencyStats_writes_ops latencyStats.writes.
-# TYPE mongodb_latencyStats_writes_ops untyped
-mongodb_latencyStats_writes_ops 1` + "\n")
+# HELP mongodb_count count
+# TYPE mongodb_count untyped
+mongodb_count 1
+# HELP mongodb_indexDetails_id_LSM_bloom_filter_hits indexDetails._id_.LSM.
+# TYPE mongodb_indexDetails_id_LSM_bloom_filter_hits untyped
+mongodb_indexDetails_id_LSM_bloom_filter_hits 0
+# HELP mongodb_indexDetails_id_btree_overflow_pages indexDetails._id_.btree.
+# TYPE mongodb_indexDetails_id_btree_overflow_pages untyped
+mongodb_indexDetails_id_btree_overflow_pages 0` + "\n")
 
 	// Filter metrics for 2 reasons:
 	// 1. The result is huge
 	// 2. We need to check against know values. Don't use metrics that return counters like uptime
 	//    or counters like the number of transactions because they won't return a known value to compare
 	filter := []string{
-		"mongodb_latencyStats_commands_latency",
-		"mongodb_latencyStats_commands_ops",
-		"mongodb_latencyStats_writes_ops",
+		"mongodb_count",
+		"mongodb_indexDetails_id_LSM_bloom_filter_hits",
+		"mongodb_indexDetails_id_btree_overflow_pages",
 	}
 	err = testutil.CollectAndCompare(c, expected, filter...)
 	assert.NoError(t, err)
