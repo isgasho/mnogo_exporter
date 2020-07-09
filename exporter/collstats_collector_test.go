@@ -9,13 +9,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/Percona-Lab/mnogo_exporter/internal/tu"
 )
 
 func TestCollStatsCollector(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	client := getTestClient(ctx, t)
+	client := tu.DefaultTestClient(ctx, t)
 
 	database := client.Database("testdb")
 	database.Drop(ctx) //nolint

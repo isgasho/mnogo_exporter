@@ -8,13 +8,15 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/Percona-Lab/mnogo_exporter/internal/tu"
 )
 
 func TestReplsetStatusCollector(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	client := getTestClient(ctx, t)
+	client := tu.DefaultTestClient(ctx, t)
 
 	c := &replSetGetStatusCollector{
 		ctx:    ctx,
@@ -47,4 +49,20 @@ func TestReplsetStatusCollector(t *testing.T) {
 	}
 	err := testutil.CollectAndCompare(c, expected, filter...)
 	assert.NoError(t, err)
+}
+
+func TestReplsetStatusCollectorNoSharding(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	client := tu.TestClient(ctx, tu.MongoDBStandAlonePort, t)
+
+	c := &replSetGetStatusCollector{
+		ctx:    ctx,
+		client: client,
+	}
+
+	expected := strings.NewReader(``)
+	err := testutil.CollectAndCompare(c, expected)
+	assert.Error(t, err)
 }

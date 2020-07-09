@@ -3,6 +3,7 @@ package exporter
 import (
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -133,7 +134,7 @@ func makeRawMetric(prefix, name string, value interface{}, labels map[string]str
 		f = v
 	case primitive.DateTime:
 		f = float64(v)
-	case primitive.A, primitive.ObjectID, primitive.Timestamp, primitive.Binary, string:
+	case primitive.A, primitive.ObjectID, primitive.Timestamp, primitive.Binary, string, []uint8, time.Time:
 		return nil, nil
 	default:
 		return nil, errors.Wrapf(errCannotHandleType, "%T", v)

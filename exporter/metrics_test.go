@@ -116,21 +116,20 @@ func TestMakeRawMetric(t *testing.T) {
 	prefix := "serverStatus.transactions."
 	name := "retriedCommandsCount"
 	testCases := []struct {
-		value     interface{}
-		wantVal   *float64
-		wantError bool
+		value   interface{}
+		wantVal *float64
 	}{
-		{value: true, wantVal: pointer.ToFloat64(1), wantError: false},
-		{value: false, wantVal: pointer.ToFloat64(0), wantError: false},
-		{value: int32(1), wantVal: pointer.ToFloat64(1), wantError: false},
-		{value: int64(2), wantVal: pointer.ToFloat64(2), wantError: false},
-		{value: float32(1.23), wantVal: pointer.ToFloat64(float64(float32(1.23))), wantError: false},
-		{value: float64(1.23), wantVal: pointer.ToFloat64(1.23), wantError: false},
-		{value: primitive.A{}, wantVal: nil, wantError: false},
-		{value: primitive.Timestamp{}, wantVal: nil, wantError: false},
-		{value: "zapp", wantVal: nil, wantError: false},
-		{value: []byte{}, wantVal: nil, wantError: true},
-		{value: time.Date(2020, 06, 15, 0, 0, 0, 0, time.UTC), wantVal: nil, wantError: true},
+		{value: true, wantVal: pointer.ToFloat64(1)},
+		{value: false, wantVal: pointer.ToFloat64(0)},
+		{value: int32(1), wantVal: pointer.ToFloat64(1)},
+		{value: int64(2), wantVal: pointer.ToFloat64(2)},
+		{value: float32(1.23), wantVal: pointer.ToFloat64(float64(float32(1.23)))},
+		{value: float64(1.23), wantVal: pointer.ToFloat64(1.23)},
+		{value: primitive.A{}, wantVal: nil},
+		{value: primitive.Timestamp{}, wantVal: nil},
+		{value: "zapp", wantVal: nil},
+		{value: []byte{}, wantVal: nil},
+		{value: time.Date(2020, 06, 15, 0, 0, 0, 0, time.UTC), wantVal: nil},
 	}
 
 	ln := make([]string, 0) // needs pre-allocation to accomplish pre-allocation for labels
@@ -149,7 +148,7 @@ func TestMakeRawMetric(t *testing.T) {
 
 		m, err := makeRawMetric(prefix, name, tc.value, nil)
 
-		assert.Equal(t, tc.wantError, err != nil)
+		assert.NoError(t, err)
 		assert.Equal(t, want, m)
 	}
 }
