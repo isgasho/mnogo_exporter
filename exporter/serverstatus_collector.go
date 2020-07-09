@@ -3,7 +3,6 @@ package exporter
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,14 +24,6 @@ func (d *serverStatusCollector) Collect(ch chan<- prometheus.Metric) {
 	var m bson.M
 	if err := res.Decode(&m); err != nil {
 		ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
-		return
-	}
-
-	m, ok := m["data"].(bson.M)
-	if !ok {
-		err := errors.Wrapf(errCannotHandleType, "%T", m["data"])
-		ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
-
 		return
 	}
 
