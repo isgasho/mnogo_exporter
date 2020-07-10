@@ -64,5 +64,5 @@ func TestReplsetStatusCollectorNoSharding(t *testing.T) {
 
 	expected := strings.NewReader(``)
 	err := testutil.CollectAndCompare(c, expected)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }

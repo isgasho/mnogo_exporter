@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	replicationNotEnabled = 76
+	replicationNotEnabled        = 76
+	replicationNotYetInitialized = 94
 )
 
 type replSetGetStatusCollector struct {
@@ -28,8 +29,10 @@ func (d *replSetGetStatusCollector) Collect(ch chan<- prometheus.Metric) {
 	var m bson.M
 
 	if err := res.Decode(&m); err != nil {
-		if e, ok := err.(mongo.CommandError); ok && e.Code == replicationNotEnabled {
-			return
+		if e, ok := err.(mongo.CommandError); ok {
+			if e.Code == replicationNotYetInitialized || e.Code == replicationNotEnabled {
+				return
+			}
 		}
 		ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
 
