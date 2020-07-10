@@ -26,7 +26,6 @@ func TestCollStatsCollector(t *testing.T) {
 	assert.NoError(t, err)
 
 	c := &collstatsCollector{
-		ctx:         ctx,
 		client:      client,
 		collections: []string{"testdb.testcol"},
 	}

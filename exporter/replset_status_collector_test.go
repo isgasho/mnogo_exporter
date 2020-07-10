@@ -19,7 +19,6 @@ func TestReplsetStatusCollector(t *testing.T) {
 	client := tu.DefaultTestClient(ctx, t)
 
 	c := &replSetGetStatusCollector{
-		ctx:    ctx,
 		client: client,
 	}
 
@@ -58,7 +57,6 @@ func TestReplsetStatusCollectorNoSharding(t *testing.T) {
 	client := tu.TestClient(ctx, tu.MongoDBStandAlonePort, t)
 
 	c := &replSetGetStatusCollector{
-		ctx:    ctx,
 		client: client,
 	}
 

@@ -19,7 +19,6 @@ func TestServerStatusDataCollector(t *testing.T) {
 	client := tu.DefaultTestClient(ctx, t)
 
 	c := &serverStatusCollector{
-		ctx:    ctx,
 		client: client,
 	}
 

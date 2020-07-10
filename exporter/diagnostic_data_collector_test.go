@@ -19,7 +19,6 @@ func TestDiagnosticDataCollector(t *testing.T) {
 	client := tu.DefaultTestClient(ctx, t)
 
 	c := &diagnosticDataCollector{
-		ctx:    ctx,
 		client: client,
 	}
 

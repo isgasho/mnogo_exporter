@@ -11,7 +11,6 @@ import (
 )
 
 type collstatsCollector struct {
-	ctx         context.Context
 	client      *mongo.Client
 	collections []string
 }
@@ -25,7 +24,7 @@ func (d *collstatsCollector) Collect(ch chan<- prometheus.Metric) {
 
 	for _, dbCollection := range d.collections {
 		parts := strings.Split(dbCollection, ".")
-		if len(parts) != 2 {
+		if len(parts) != 2 { //nolint:gomnd
 			continue
 		}
 
@@ -33,18 +32,19 @@ func (d *collstatsCollector) Collect(ch chan<- prometheus.Metric) {
 		collection := parts[1]
 
 		aggregation := bson.D{
-			{"$collStats", bson.M{"latencyStats": bson.E{"histograms", true}}}, //nolint
+			{"$collStats", bson.M{"latencyStats": bson.E{Key: "histograms", Value: true}}},
 		}
 
 		cursor, err := d.client.Database(database).Collection(collection).Aggregate(ctx, mongo.Pipeline{aggregation})
 		if err != nil {
-			logrus.Errorf("cannot get $collstats for collection %s.%s: %s", database, collection, err)
+			logrus.Errorf("cannot get $collstats cursor for collection %s.%s: %s", database, collection, err)
 			continue
 		}
 
 		var stats []bson.M
 		if err = cursor.All(ctx, &stats); err != nil {
-			panic(err)
+			logrus.Errorf("cannot get $collstats for collection %s.%s: %s", database, collection, err)
+			continue
 		}
 
 		for _, m := range stats {
@@ -54,3 +54,5 @@ func (d *collstatsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 	}
 }
+
+var _ prometheus.Collector = (*collstatsCollector)(nil)

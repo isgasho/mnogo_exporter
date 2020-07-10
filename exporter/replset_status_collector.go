@@ -13,7 +13,6 @@ const (
 )
 
 type replSetGetStatusCollector struct {
-	ctx    context.Context
 	client *mongo.Client
 }
 
@@ -23,7 +22,7 @@ func (d *replSetGetStatusCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (d *replSetGetStatusCollector) Collect(ch chan<- prometheus.Metric) {
 	cmd := bson.D{{Key: "replSetGetStatus", Value: "1"}}
-	res := d.client.Database("admin").RunCommand(d.ctx, cmd)
+	res := d.client.Database("admin").RunCommand(context.Background(), cmd)
 	var m bson.M
 	if err := res.Decode(&m); err != nil {
 		if e, ok := err.(mongo.CommandError); ok && e.Code == replicationNotEnabled {
@@ -37,3 +36,5 @@ func (d *replSetGetStatusCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- metric
 	}
 }
+
+var _ prometheus.Collector = (*replSetGetStatusCollector)(nil)

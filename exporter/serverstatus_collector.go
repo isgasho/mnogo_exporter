@@ -9,7 +9,6 @@ import (
 )
 
 type serverStatusCollector struct {
-	ctx    context.Context
 	client *mongo.Client
 }
 
@@ -19,7 +18,7 @@ func (d *serverStatusCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (d *serverStatusCollector) Collect(ch chan<- prometheus.Metric) {
 	cmd := bson.D{{Key: "serverStatus", Value: "1"}}
-	res := d.client.Database("admin").RunCommand(d.ctx, cmd)
+	res := d.client.Database("admin").RunCommand(context.Background(), cmd)
 
 	var m bson.M
 	if err := res.Decode(&m); err != nil {
@@ -31,3 +30,5 @@ func (d *serverStatusCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- metric
 	}
 }
+
+var _ prometheus.Collector = (*serverStatusCollector)(nil)
