@@ -27,6 +27,7 @@ linters:
   disable:
       - lll
       - unused
+      - testpackage
 
 issues:
   exclude-use-default: false

@@ -22,7 +22,7 @@ func (d *collstatsCollector) Describe(ch chan<- *prometheus.Desc) {
 func (d *collstatsCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, dbCollection := range d.collections {
 		parts := strings.Split(dbCollection, ".")
-		if len(parts) != 2 {
+		if len(parts) != 2 { //nolint
 			continue
 		}
 

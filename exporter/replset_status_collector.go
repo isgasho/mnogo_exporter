@@ -24,12 +24,15 @@ func (d *replSetGetStatusCollector) Describe(ch chan<- *prometheus.Desc) {
 func (d *replSetGetStatusCollector) Collect(ch chan<- prometheus.Metric) {
 	cmd := bson.D{{Key: "replSetGetStatus", Value: "1"}}
 	res := d.client.Database("admin").RunCommand(d.ctx, cmd)
+
 	var m bson.M
+
 	if err := res.Decode(&m); err != nil {
 		if e, ok := err.(mongo.CommandError); ok && e.Code == replicationNotEnabled {
 			return
 		}
 		ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
+
 		return
 	}
 

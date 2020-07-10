@@ -1,3 +1,4 @@
+// Package tu has Test Util functions
 package tu
 
 import (
@@ -15,7 +16,8 @@ import (
 
 const (
 	// MongoDBS1PrimaryPort MongoDB Shard 1 Primary Port
-	MongoDBS1PrimaryPort  = "17001"
+	MongoDBS1PrimaryPort = "17001"
+	// MongoDBStandAlonePort MongoDB stand alone instance Port
 	MongoDBStandAlonePort = "27017"
 )
 
@@ -29,11 +31,13 @@ func GetenvDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
+// DefaultTestClient returns the default MongoDB connection used for tests. It is a direct
+// connection to the primary server of replicaset 1.
 func DefaultTestClient(ctx context.Context, t *testing.T) *mongo.Client {
 	return TestClient(ctx, MongoDBS1PrimaryPort, t)
 }
 
-// GetTestClient returns a new MongoDB connection to the specified server port.
+// TestClient returns a new MongoDB connection to the specified server port.
 func TestClient(ctx context.Context, port string, t *testing.T) *mongo.Client {
 	if port == "" {
 		port = MongoDBS1PrimaryPort

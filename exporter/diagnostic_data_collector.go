@@ -2,8 +2,8 @@ package exporter
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -31,7 +31,7 @@ func (d *diagnosticDataCollector) Collect(ch chan<- prometheus.Metric) {
 
 	m, ok := m["data"].(bson.M)
 	if !ok {
-		err := fmt.Errorf("unexpected %T for data", m["data"])
+		err := errors.Wrapf(errUnexpectedDataType, "%T for data field", m["data"])
 		ch <- prometheus.NewInvalidMetric(prometheus.NewInvalidDesc(err), err)
 
 		return
