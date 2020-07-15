@@ -28,6 +28,7 @@ linters:
       - lll
       - unused
       - testpackage
+      - wsl 
 
 issues:
   exclude-use-default: false
