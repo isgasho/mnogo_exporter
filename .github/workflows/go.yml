@@ -26,9 +26,14 @@ jobs:
         make init
 
     - name: Test
+      runs-on: {{ matrix.version }}
+      strategy:
+          matrix:
+              version: [3.6, 4.0, 4.2 ]
       run: |
-        make test-cluster
+        VERSION=${{ matrix.version }} make test-cluster
         make test
+        make test-cluster-clean
 
     - name: Run checks/linters
       run: |
