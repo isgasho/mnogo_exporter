@@ -1,4 +1,4 @@
-.PHONY: all build clean default help init test format
+.PHONY: all build clean default help init test format check-license
 default: help
 
 GO_TEST_PATH ?= ./...
@@ -83,6 +83,9 @@ format:                     ## Format source code.
 
 check:                      ## Run checks/linters
 	bin/golangci-lint run
+
+check-license:              ## Check license in headers.
+	@go run .github/check-license.go
 
 help:                       ## Display this help message.
 	@echo "Please use \`make <target>\` where <target> is one of:"
