@@ -69,10 +69,12 @@ init:                       ## Install linters.
 	go build -modfile=tools/go.mod -o bin/goimports golang.org/x/tools/cmd/goimports
 	go build -modfile=tools/go.mod -o bin/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
 	go build -modfile=tools/go.mod -o bin/reviewdog github.com/reviewdog/reviewdog/cmd/reviewdog
-	TAG=0.140.0 curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh
 
 build:                      ## Build the binaries.
-	bin/goreleaser --snapshot --skip-publish --rm-dist
+	docker run --rm --privileged \
+		-v ${PWD}:/go/src/github.com/user/repo \
+		-w /go/src/github.com/user/repo \
+		goreleaser/goreleaser release --snapshot --skip-publish --rm-dist
 
 
 FILES = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
